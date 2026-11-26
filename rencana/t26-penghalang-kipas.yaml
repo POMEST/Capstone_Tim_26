@@ -1,0 +1,59 @@
+# Rencana eksperimen tim 26: Deteksi penghalang aliran udara kipas
+# Label: desain -- persentase tutupan kertas (manual, operator) + PWM kipas (otomatis)
+#
+# 96 kondisi: 8 blok x 12 kondisi.
+#   - 4 taraf penghalang (manual) x ulangan_blok 2 = 8 blok, urutan diacak seed 1026.
+#   - Di tiap blok: 3 taraf kipas (otomatis) x ulangan 4 = 12 kondisi, urutan diacak.
+# Estimasi: 96 x (20 s rekam + 2 s jeda) + 8 x 90 s ganti blok
+#         = 2112 s + 720 s = 2832 s ~= 47 menit (muat slot operator ~50 menit).
+#
+# Skema mengikuti 00-metode-eksperimen-lapangan bagian 3:
+#   - faktor berupa daftar  -> faktor otomatis (disetel skrip)
+#   - faktor berupa mapping -> memakai kunci jenis/taraf/instruksi
+#   - {taraf} pada instruksi -> diganti nilai taraf saat dicetak
+
+tim: 26
+judul: Deteksi penghalang aliran udara kipas
+pembimbing: Christyan Tamaro Nadeak
+pilar: Mesin dan energi
+seed: 1026
+
+ulangan: 4
+ulangan_blok: 2
+durasi_kondisi_detik: 20
+jeda_detik: 2
+# 8 pergantian blok x 90 detik = 12 menit (pasang/lepas kertas + periksa).
+waktu_ganti_blok_detik: 90
+
+rekam:
+  audio:
+    aktif: true
+    sample_rate: 16000
+  kamera:
+    aktif: false
+
+faktor:
+  kipas:
+    - 120
+    - 190
+    - 255
+  penghalang:
+    jenis: manual
+    taraf:
+      - tanpa penghalang
+      - kertas menutup 25%
+      - kertas menutup 50%
+      - kertas menutup 75%
+    instruksi: 'Pasang penghalang di depan kipas: {taraf}'
+
+metode:
+  jenis_tugas: Klasifikasi 4 kelas
+  masukan_model: Getaran + arus kipas, jendela 1 s
+  metrik_utama: F1-makro
+  jalur:
+    - CNN
+    - RNN
+    - Transformer
+    - AE
+  pembanding_non_dl: >-
+    Fitur statistik + FFT (RMS, puncak, kurtosis, energi pita) + Random Forest
