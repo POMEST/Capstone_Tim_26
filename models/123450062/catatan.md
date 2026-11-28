@@ -25,7 +25,10 @@ Menggunakan **AdamW** (`lr=1e-3`, `weight_decay=1e-4`) dengan penjadwal **Cosine
 
 | ID | Data | Channels | Kernels | LR | Dropout | Epochs | Epoch terbaik | val_acc | val_macro_f1 | Latensi (ms/jendela) | Durasi (s) | Catatan |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| sim-01 | Simulasi Tim 26 (7 ch, 400 Hz) | 32,64,128 | 11,7,5 | 1e-3 | 0.30 | 25 | 4/25 | 1.0000 | 1.0000 | 0.281 | 67.1 | Uji kerangka Sprint 1 (`--seed 1`) |
+| sim-01 | Simulasi protokol (`sesi_simulasi`, 722/190) | 32,64,128 | 11,7,5 | 1e-3 | 0.30 | 25 | 4/25 | 1.0000 | 1.0000 | 0.229 | ~16 | Uji kerangka; simulasi terlalu mudah (terpisah sempurna) |
+| **meja-01** | **Data meja 17 Nov (473/135 jendela)** | 32,64,128 | 11,7,5 | 1e-3 | 0.30 | 25 | 12/25 | **0.7185** | **0.6272** | 0.217 | 16.1 | **Sprint 1, `--seed 1`, konfigurasi awal belum disetel** |
+
+> Catatan Sprint 1: satu seed pada data meja sudah memenuhi Definition of Done Sprint 1. Pencarian hyperparameter, 3 seed, dan ablation lengkap adalah pekerjaan Sprint 2 (28 Nov–12 Des).
 
 ## Ablation (>= 2)
 
@@ -42,6 +45,30 @@ Menggunakan **AdamW** (`lr=1e-3`, `weight_decay=1e-4`) dengan penjadwal **Cosine
 | Ablation 3: kernel kecil (3) | `python models/123450062/run.py --seed 1 --kernels 3` | — | — | — | Menunggu data meja |
 | Ablation 4: kernel lebar (15) | `python models/123450062/run.py --seed 1 --kernels 15` | — | — | — | Menunggu data meja |
 | Ablation 5: tanpa BatchNorm | `python models/123450062/run.py --seed 1 --no-bn` | — | — | — | Menunggu data meja |
+
+## Data meja: cara menjalankan dan temuan Sprint 1
+
+Sesi meja asli (`data/sesi-20261117-160506`) tidak berskema sama dengan `src/protokol/data.py`
+(tidak ada `desain.csv`; `imu` bernilai `k`; kolom waktu `t_host`/`t_esp_ms`; arus bernama `arus_mA`).
+Tanpa mengubah `data.py`, `models/123450062/siapkan_data_meja.py` mengonversinya ke skema protokol
+di `data/sesi_meja_t26/` (tidak di-commit), dan `data/MANIFEST.json` diarahkan ke folder itu:
+
+```bash
+python models/123450062/siapkan_data_meja.py     # sekali, setelah sesi meja ada di data/
+python models/123450062/run.py --seed 1          # memanggil src.protokol.data.muat()
+```
+
+Temuan yang memengaruhi hasil (fakta dari data):
+- Kolom `blok` pada `label.csv` hanya 1–4; satuan blok fisik adalah pasangan (`blok`, `ulangan_blok`) = 8 blok. Konverter menomori ulang 1–8 menurut waktu; tanpa itu split per blok gagal (kelas 50 % hanya punya satu blok).
+- Laju efektif IMU kipas ≈ 303 Hz (nominal 400) dan arus ≈ 152 Hz (nominal 200) karena sambungan Wi-Fi ESP32 sering putus (lihat `log.txt`). Hanya 1.382 dari 1.824 jendela (76 %) yang lolos syarat cakupan sampel pada `data.py`; sisanya dibuang.
+- Jam: `t_host` per baris berjitter (paket tiba bergerombol), jadi konverter memakai `t_esp_ms` + satu offset median ke jam host (selisih awal–akhir sesi < 0,03 s).
+- Split protokol tidak seimbang kelas: latih per kelas `167/134/121/51`, validasi `49/28/49/9` (kelas 75 % paling sedikit). Validasi hanya 135 jendela dari 10 kondisi, sehingga F1-makro berisik; jangan dibaca sebagai angka akhir.
+- Arus di sesi meja ada yang mendekati 0 mA (kuartil bawah ≈ −0,1 mA, median 99,5 mA). Dugaan: `daya.csv` merekam terus, termasuk jeda 2 detik antar-kondisi saat kipas mati; belum diperiksa apakah ada sebagian kondisi aktif yang juga ≈ 0 (tugas Sprint 2).
+
+Hasil Sprint 1: `val_macro_f1 = 0.6272`, `val_acc = 0.7185` (seed 1, epoch terbaik 12/25, 16 s di CPU,
+59.236 parameter, latensi 0,217 ms/jendela). Dugaan (belum diuji): jumlah jendela latih kecil
+(473) dan hanya 10 kondisi validasi membuat model sulit membedakan 25 % vs 50 %;
+akan diuji lewat ablation `--sensor`, `--kernels`, dan augmentasi di Sprint 2.
 
 ## Hasil 3 seed konfigurasi akhir
 
