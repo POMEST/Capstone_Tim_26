@@ -1,5 +1,10 @@
 {
-  "sumber": "https://… (tautan dataset dari kartu Kasus tim di Workbench)",
-  "berkas": ["data/latih.csv"],
-  "catatan": "Isi pada Sprint 0: versi/tanggal unduh, jumlah baris, dan perubahan (bila ada). Berkas data sendiri tidak di-commit."
+  "sumber": "simulasi-dummy://rencana/t26-penghalang-kipas.yaml (pra-data-meja 11 Nov)",
+  "berkas": [
+    "data/sesi_simulasi/daya.csv",
+    "data/sesi_simulasi/desain.csv",
+    "data/sesi_simulasi/imu.csv",
+    "data/sesi_simulasi/manifest.json"
+  ],
+  "catatan": "Sesi simulasi dummy Tim 26 sesuai rencana/t26-penghalang-kipas.yaml: 96 kondisi (8 blok x 12 kondisi), 20 s/kondisi + 2 s jeda, imu=kipas 400 Hz, daya=kipas 200 Hz. Diganti data meja setelah pengambilan data."
 }
